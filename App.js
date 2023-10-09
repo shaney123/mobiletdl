@@ -1,220 +1,300 @@
-import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
-  SafeAreaView,
-  View,
-  TextInput,
   Text,
+  View,
   FlatList,
+  TextInput,
   TouchableOpacity,
   Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-const COLORS = {primary: '#0A4B18', white: '#D3EDD0'};
+
+const COLORS = {
+  primary: '#0A4B18',
+  white: '#D3EDD0',
+};
 
 const App = () => {
-  const [todos, setTodos] = React.useState([]);
-  const [textInput, setTextInput] = React.useState('');
+  const [tasks, setTasks] = useState([]);
+  const [taskText, setTaskText] = useState('');
+  const [editedTask, setEditedTask] = useState('');
+  const [editingTaskId, setEditingTaskId] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
 
-  React.useEffect(() => {
-    getTodosFromUserDevice();
+  useEffect(() => {
+    getTasksFromUserDevice();
   }, []);
 
-  React.useEffect(() => {
-    saveTodoToUserDevice(todos);
-  }, [todos]);
+  useEffect(() => {
+    saveTasksToUserDevice(tasks);
+  }, [tasks]);
+  
+const addTask = () => {
+  if (taskText.trim() === '') {
+    Alert.alert(
+      'Error',
+      'Please input text!!!',
+      [{ text: 'OK', style: 'destructive' }]
+    );
+  } else {
+    const newTask = {
+      id: Math.random().toString(),
+      text: taskText,
+      completed: false,
+    };
+    setTasks([...tasks, newTask]);
+    setTaskText('');
+  }
+};
 
-  const addTodo = () => {
-    if (textInput == '') {
-      Alert.alert('Error!!!', 'Please input text!');
-    } else {
-      const newTodo = {
-        id: Math.random(),
-        task: textInput,
-        completed: false,
-      };
-      setTodos([...todos, newTodo]);
-      setTextInput('');
-    }
-  };
-
-  const saveTodoToUserDevice = async todos => {
+  const saveTasksToUserDevice = async (tasks) => {
     try {
-      const stringifyTodos = JSON.stringify(todos);
-      await AsyncStorage.setItem('todos', stringifyTodos);
+      const stringifyTasks = JSON.stringify(tasks);
+      await AsyncStorage.setItem('tasks', stringifyTasks);
     } catch (error) {
       console.log(error);
     }
   };
 
-  const getTodosFromUserDevice = async () => {
+  const getTasksFromUserDevice = async () => {
     try {
-      const todos = await AsyncStorage.getItem('todos');
-      if (todos != null) {
-        setTodos(JSON.parse(todos));
+      const tasks = await AsyncStorage.getItem('tasks');
+      if (tasks != null) {
+        setTasks(JSON.parse(tasks));
       }
     } catch (error) {
       console.log(error);
     }
   };
 
-  const markTodoComplete = todoId => {
-    const newTodosItem = todos.map(item => {
-      if (item.id == todoId) {
-        return {...item, completed: true};
-      }
-      return item;
-    });
-
-    setTodos(newTodosItem);
+  const updateTask = () => {
+    const updatedTasks = tasks.map((task) =>
+      task.id === editingTaskId ? { ...task, text: editedTask } : task
+    );
+    setTasks(updatedTasks);
+    setEditingTaskId(null);
+    setIsEditing(false); // Exit editing mode
   };
 
-  const deleteTodo = todoId => {
-    const newTodosItem = todos.filter(item => item.id != todoId);
-    setTodos(newTodosItem);
+  const deleteTask = (taskId) => {
+    const updatedTasks = tasks.filter((task) => task.id !== taskId);
+    setTasks(updatedTasks);
   };
 
-  const clearAllTodos = () => {
-    Alert.alert('Are you sure to', 'Clear all task?', [
+  const toggleTaskCompletion = (taskId) => {
+    const updatedTasks = tasks.map((task) =>
+      task.id === taskId ? { ...task, completed: !task.completed } : task
+    );
+    setTasks(updatedTasks);
+  };
+
+  const clearAllTasks = () => {
+    Alert.alert('Clear All Tasks', 'Are you sure you want to clear all tasks?', [
       {
         text: 'Yes',
-        onPress: () => setTodos([]),
+        onPress: () => setTasks([]),
       },
-      { 
+      {
         text: 'No',
+        style: 'cancel',
       },
     ]);
   };
 
-  const ListItem = ({todo}) => {
-    return (
-      <View style={styles.listItem}>
-        <View style={{flex: 1}}>
-          <Text
-            style={{
-              fontWeight: 'bold',
-              fontSize: 15,
-              color: COLORS.primary,
-              textDecorationLine: todo?.completed ? 'line-through' : 'none',
-            }}>
-            {todo?.task}
-          </Text>
-        </View>
-        {!todo?.completed && (
-          <TouchableOpacity onPress={() => markTodoComplete(todo.id)}>
-            <View style={[styles.actionIcon, {backgroundColor: 'green'}]}>
-              <Icon name="done" size={20} color="white" />
-            </View>
-          </TouchableOpacity>
+  const renderTask = ({ item }) => (
+    <View style={styles.listItem}>
+      <TouchableOpacity
+        onPress={() => toggleTaskCompletion(item.id)}
+        style={[
+          styles.checkbox,
+          { borderColor: item.completed ? COLORS.primary : 'gray' },
+        ]}
+      >
+        {item.completed && (
+          <Icon name="check" size={24} color={COLORS.primary} />
         )}
-        <TouchableOpacity onPress={() => deleteTodo(todo.id)}>
-          <View style={styles.actionIcon}>
-            <Icon name="delete" size={20} color="white" />
-          </View>
-        </TouchableOpacity>
-      </View>
-    );
-  };
-  return (
-    <SafeAreaView
-      style={{
-        flex: 1,
-        backgroundColor: 'white',
-      }}>
-      <View style={styles.header}>
+      </TouchableOpacity>
+      {editingTaskId === item.id ? (
+        <TextInput
+          style={styles.inputText}
+          value={editedTask}
+          onChangeText={(text) => setEditedTask(text)}
+          onBlur={updateTask}
+        />
+      ) : (
         <Text
-          style={{
-            fontWeight: 'bold',
-            fontSize: 25,
-            color: COLORS.primary,
-          }}>
-          TO-DO LIST
+          style={[
+            styles.taskText,
+            { textDecorationLine: item.completed ? 'line-through' : 'none' },
+          ]}
+        >
+          {item.text}
         </Text>
-        <Icon name="delete" size={25} color="green" onPress={clearAllTodos} />
+      )}
+      <TouchableOpacity
+        onPress={() => {
+          setEditingTaskId(item.id);
+          setIsEditing(true); // Enter editing mode
+        }}
+        style={styles.editButton}
+      >
+        <Icon name="edit" size={20} color={COLORS.white} />
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => deleteTask(item.id)}
+        style={styles.deleteButton}
+      >
+        <Icon name="delete" size={20} color={COLORS.white} />
+      </TouchableOpacity>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerText}>To-Do List</Text>
+        <TouchableOpacity onPress={clearAllTasks} style={styles.clearButton}>
+          <Text style={styles.clearButtonText}>Clear All</Text>
+        </TouchableOpacity>
       </View>
       <FlatList
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{padding: 20, paddingBottom: 100}}
-        data={todos}
-        renderItem={({item}) => <ListItem todo={item} />}
+        data={tasks}
+        renderItem={renderTask}
+        keyExtractor={(item) => item.id.toString()}
       />
-
-      <View style={styles.footer}>
-        <View style={styles.inputContainer}>
-          <TextInput
-            value={textInput}
-            placeholder="Input Task"
-            onChangeText={text => setTextInput(text)}
-          />
-        </View>
-        <TouchableOpacity onPress={addTodo}>
-          <View style={styles.iconContainer}>
-            <Icon name="add" color="white" size={30} />
+      {!isEditing && (
+        <View style={styles.footer}>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.inputText}
+              placeholder="Add a new task"
+              value={taskText}
+              onChangeText={(text) => setTaskText(text)}
+            />
           </View>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+          <TouchableOpacity onPress={addTask} style={styles.iconContainer}>
+            <Icon name="add" size={24} color={COLORS.white} />
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.white,
+  },
+  headerText: {
+    fontSize: 30,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+  },
+  clearButton: {
+    padding: 20,
+    borderRadius: 5,
+  },
+  clearButtonText: {
+    color: 'green',
+    fontWeight: 'bold',
+  },
   footer: {
-    position: 'absolute',
-    bottom: 0,
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
     backgroundColor: COLORS.white,
+    borderColor: COLORS.white,
+    position: 'absolute',
+    bottom: 0,
   },
   inputContainer: {
     height: 50,
-    paddingHorizontal: 20,
-    elevation: 40,
+    paddingHorizontal: 5,
+    elevation: 10,
     backgroundColor: 'white',
     flex: 1,
-    marginVertical: 20,
-    marginRight: 20,
-    borderRadius: 30,
+    marginVertical: 35,
+    marginRight: 18,
+    borderRadius: 10,
+    justifyContent:'center',
     alignItems: 'center',
-    paddingTop: 10
+    flexDirection: 'row',
   },
   iconContainer: {
     height: 50,
-    width: 50,
+    width: 100,
     backgroundColor: COLORS.primary,
-    elevation: 40,
+    elevation: 48,
     borderRadius: 25,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   },
-
   listItem: {
-    padding: 20,
+    padding: 25,
     backgroundColor: COLORS.white,
     flexDirection: 'row',
-    elevation: 12,
-    borderRadius: 7,
-    marginVertical: 10,
+    elevation: 15,
+    borderRadius: 15,
+    marginVertical: 12,
+    alignItems: 'center',
   },
-  actionIcon: {
-    height: 25,
-    width: 25,
-    backgroundColor: COLORS.white,
+  checkbox: {
+    height: 24,
+    width: 24,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  taskText: {
+    flex: 1,
+    fontWeight: 'thin',
+    fontSize: 15,
+    color: COLORS.primary,
+  },
+  inputText: {
+    flex: 1,
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingLeft: 5,
+    fontSize: 15,
+  },
+  editButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 5,
+    marginRight: 5,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'red',
-    marginLeft: 25,
-    borderRadius: 3,
   },
-  header: {
-    padding: 40,
-    flexDirection: 'row',
+  updateButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 5,
+  },
+  deleteButton: {
+    backgroundColor: 'red',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 5,
+    justifyContent: 'center',
     alignItems: 'center',
-    justifyContent: 'space-between',
-     backgroundColor: COLORS.white,
   },
 });
 
