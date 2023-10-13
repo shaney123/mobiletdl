@@ -75,7 +75,7 @@ const addTask = () => {
     );
     setTasks(updatedTasks);
     setEditingTaskId(null);
-    setIsEditing(false); // Exit editing mode
+    setIsEditing(false); 
   };
 
   const deleteTask = (taskId) => {
@@ -103,7 +103,7 @@ const addTask = () => {
     ]);
   };
 
-  const renderTask = ({ item }) => (
+ const renderTask = ({ item }) => (
     <View style={styles.listItem}>
       <TouchableOpacity
         onPress={() => toggleTaskCompletion(item.id)}
@@ -133,15 +133,25 @@ const addTask = () => {
           {item.text}
         </Text>
       )}
-      <TouchableOpacity
-        onPress={() => {
-          setEditingTaskId(item.id);
-          setIsEditing(true); // Enter editing mode
-        }}
-        style={styles.editButton}
-      >
-        <Icon name="edit" size={20} color={COLORS.white} />
-      </TouchableOpacity>
+      {editingTaskId === item.id ? (
+        <TouchableOpacity
+          onPress={updateTask}
+          style={styles.updateButton}
+        >
+          <Text style={styles.updateButtonText}>Update</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          onPress={() => {
+            setEditingTaskId(item.id);
+            setEditedTask(item.text); 
+            setIsEditing(true);
+          }}
+          style={styles.editButton}
+        >
+          <Icon name="edit" size={20} color={COLORS.white} />
+        </TouchableOpacity>
+      )}
       <TouchableOpacity
         onPress={() => deleteTask(item.id)}
         style={styles.deleteButton}
@@ -207,13 +217,18 @@ const styles = StyleSheet.create({
     color: 'green',
     fontWeight: 'bold',
   },
+  updateButtonText:{
+     color: 'white',
+    fontWeight: 'bold',
+  },
   footer: {
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
     backgroundColor: COLORS.white,
-    borderColor: COLORS.white,
+    borderColor: COLORS.white
+    ,
     position: 'absolute',
     bottom: 0,
   },
@@ -224,7 +239,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     flex: 1,
     marginVertical: 35,
-    marginRight: 18,
+    marginRight: 10,
     borderRadius: 10,
     justifyContent:'center',
     alignItems: 'center',
@@ -232,7 +247,7 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     height: 50,
-    width: 100,
+    width: 50,
     backgroundColor: COLORS.primary,
     elevation: 48,
     borderRadius: 25,
@@ -245,7 +260,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     elevation: 15,
     borderRadius: 15,
-    marginVertical: 12,
+    marginVertical: 15,
     alignItems: 'center',
   },
   checkbox: {
@@ -275,7 +290,7 @@ const styles = StyleSheet.create({
   },
   editButton: {
     backgroundColor: COLORS.primary,
-    paddingHorizontal: 10,
+    paddingHorizontal: 6,
     paddingVertical: 5,
     borderRadius: 5,
     marginRight: 5,
@@ -284,9 +299,11 @@ const styles = StyleSheet.create({
   },
   updateButton: {
     backgroundColor: COLORS.primary,
-    paddingHorizontal: 10,
+    paddingHorizontal: 6,
     paddingVertical: 5,
     borderRadius: 5,
+    marginRight: 3,
+    marginLeft: 8,
   },
   deleteButton: {
     backgroundColor: 'red',
