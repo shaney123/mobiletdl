@@ -138,7 +138,7 @@ const addTask = () => {
           onPress={updateTask}
           style={styles.updateButton}
         >
-          <Text style={styles.updateButtonText}>Update</Text>
+         <Icon name="check" size={25} color={COLORS.white} />
         </TouchableOpacity>
       ) : (
         <TouchableOpacity
@@ -316,3 +316,4 @@ const styles = StyleSheet.create({
 });
 
 export default App;
+                                                                                  
